@@ -2,8 +2,8 @@ import { apiFetch } from "./http";
 
 /**
  * Función para iniciar sesión del usuario.
- * @param {*} email - correo electrónico del usuario. E.g. 'pepito.perez@example.com'
- * @param {*} password - contraseña del usuario. E.g. 'mi_contraseña_segura'
+ * @param {string} email - correo electrónico del usuario. E.g. 'pepito.perez@example.com'
+ * @param {string} password - contraseña del usuario. E.g. 'mi_contraseña_segura'
  * @returns una promesa que resuelve los datos del usuario y token de autenticación.
  */
 export function login(email, password) {
@@ -15,7 +15,7 @@ export function login(email, password) {
 
 /**
  * Función para registrar un nuevo usuario.
- * @param {*} userData - objeto con los datos del usuario. E.g. {
+ * @param {Object} userData - objeto con los datos del usuario. E.g. {
  *  firs_name: 'Pepito',
  *  last_name: 'Perez',
  *  email: 'pepito.perez@example.com',
@@ -38,4 +38,15 @@ export function register(userData) {
 export function logout() {
   localStorage.removeItem("/token/");
   return Promise.resolve();
+}
+
+/**
+ * Registra una nueva institución (Solicitud).
+ * @param {FormData} formData - Datos del formulario incluyendo archivos.
+ */
+export function registerInstitution(formData) {
+  return apiFetch("/institutions/register/", {
+    method: "POST",
+    body: formData
+  });
 }
