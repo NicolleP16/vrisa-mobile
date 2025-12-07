@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // CONFIGURACIÓN
-// const API_HOST = 'aquí va la IP';
+//const API_HOST = 'aqui va la ip';
 
 const BASE_URL = `http://${API_HOST}:8000/api`;
 
