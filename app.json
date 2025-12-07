@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "vrisa-mobile",
+    "name": "VRISA Mobile",
     "slug": "vrisa-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,23 +10,27 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#394BBD"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vrisa.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#394BBD"
       },
+      "package": "com.vrisa.mobile",
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
-    ]
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "scheme": "vrisa"
   }
 }
