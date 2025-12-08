@@ -1,4 +1,5 @@
 import { apiFetch } from "./http";
+import * as SecureStore from 'expo-secure-store';
 
 /**
  * Función para iniciar sesión del usuario.
@@ -16,7 +17,7 @@ export function login(email, password) {
 /**
  * Función para registrar un nuevo usuario.
  * @param {Object} userData - objeto con los datos del usuario. E.g. {
- *  firs_name: 'Pepito',
+ *  first_name: 'Pepito',
  *  last_name: 'Perez',
  *  email: 'pepito.perez@example.com',
  *  password: 'mi_contraseña_segura'
@@ -32,11 +33,13 @@ export function register(userData) {
 
 /**
  * Función para cerrar la sesión del usuario.
- * Se elimina el token de autenticación del almacenamiento local.
+ * Se elimina el token de autenticación del almacenamiento seguro.
  * @returns una promesa resuelta inmediatamente.
  */
-export function logout() {
-  localStorage.removeItem("/token/");
+export async function logout() {
+  await SecureStore.deleteItemAsync("token");
+  await SecureStore.deleteItemAsync("refreshToken");
+  await SecureStore.deleteItemAsync("userData");
   return Promise.resolve();
 }
 
@@ -50,3 +53,10 @@ export function registerInstitution(formData) {
     body: formData
   });
 }
+
+export const AuthAPI = {
+  login,
+  register,
+  logout,
+  registerInstitution,
+};
