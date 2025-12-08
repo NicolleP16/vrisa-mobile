@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthAPI } from '../../src/shared/api';
@@ -14,12 +14,13 @@ export default function RegisterScreen() {
   const router = useRouter();
   
   const [formData, setFormData] = useState({
-    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     password: "",
     confirmPassword: "",
-    belongsToOrganization: null, // null = sin seleccionar, true = Sí, false = No
+    belongsToOrganization: null,
     requestedRole: "",
   });
   
@@ -28,46 +29,33 @@ export default function RegisterScreen() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Roles disponibles para usuarios que pertenecen a una organización
   const organizationRoles = [
     { value: ORGANIZATION_ROLES.STATION_ADMIN, label: "Administrador de estación" },
     { value: ORGANIZATION_ROLES.RESEARCHER, label: "Investigador" },
-    { value: ORGANIZATION_ROLES.INSTITUTION, label: "Institución" },
+    { value: ORGANIZATION_ROLES.INSTITUTION, label: "Representante de Institución" },
   ];
 
-  /**
-   * Actualiza un campo específico del formulario
-   */
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  /**
-   * Maneja la selección de si pertenece a una organización
-   */
   const handleOrganizationChange = (belongsToOrg) => {
     setFormData(prev => ({
       ...prev,
       belongsToOrganization: belongsToOrg,
-      requestedRole: belongsToOrg ? "" : "citizen" // Si no pertenece, es ciudadano
+      requestedRole: ""
     }));
     setIsDropdownOpen(false);
   };
 
-  /**
-   * Maneja la selección de rol
-   */
   const handleRoleSelect = (roleValue) => {
     setFormData(prev => ({ ...prev, requestedRole: roleValue }));
     setIsDropdownOpen(false);
   };
 
-  /**
-   * Maneja el proceso de registro
-   */
   const handleRegister = async () => {
     // Validaciones básicas
-    if (!formData.username || !formData.email || !formData.password || !formData.phone) {
+    if (!formData.first_name || !formData.last_name || !formData.email || !formData.password || !formData.phone) {
       Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
       return;
     }
@@ -93,13 +81,10 @@ export default function RegisterScreen() {
       const payload = {
         email: formData.email,
         password: formData.password,
-        first_name: formData.username,
-        last_name: "Usuario", // Valor por defecto temporal
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         phone: formData.phone,
-        belongs_to_organization: formData.belongsToOrganization,
-        requested_role: formData.requestedRole || "citizen",
-        role_id: null,
-        institution_id: null,
+        requested_role: formData.belongsToOrganization === false ? 'citizen' : formData.requestedRole
       };
 
       await AuthAPI.register(payload);
@@ -122,15 +107,12 @@ export default function RegisterScreen() {
     }
   };
 
-  /**
-   * Obtiene el texto del botón según el estado del formulario
-   */
   const getButtonText = () => {
     if (loading) return "Registrando...";
     if (formData.belongsToOrganization === false) return "Registrarse como ciudadano";
     if (formData.requestedRole) {
-      const roleName = organizationRoles.find(r => r.value === formData.requestedRole)?.label || 'usuario';
-      return `Solicitar registro como ${roleName}`;
+      const roleName = organizationRoles.find(r => r.value === formData.requestedRole)?.label.split(" ")[0] || 'usuario';
+      return `Solicitar registro como ${roleName}...`;
     }
     return "Registrarse";
   };
@@ -168,18 +150,33 @@ export default function RegisterScreen() {
 
           {/* Formulario */}
           <View className="space-y-5">
-            {/* Nombre de usuario */}
-            <View>
-              <Text className="text-sm font-medium text-slate-700 mb-2">
-                <Text className="text-red-500">* </Text>Nombre de usuario
-              </Text>
-              <TextInput
-                className="border border-slate-300 rounded-lg px-4 py-3 text-base bg-white"
-                placeholder="Ingresa un nombre de usuario"
-                value={formData.username}
-                onChangeText={(value) => updateField('username', value)}
-                editable={!loading}
-              />
+            {/* Nombre y Apellido */}
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-slate-700 mb-2">
+                  <Text className="text-red-500">* </Text>Nombre
+                </Text>
+                <TextInput
+                  className="border border-slate-300 rounded-lg px-4 py-3 text-base bg-white"
+                  placeholder="Juan"
+                  value={formData.first_name}
+                  onChangeText={(value) => updateField('first_name', value)}
+                  editable={!loading}
+                />
+              </View>
+
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-slate-700 mb-2">
+                  <Text className="text-red-500">* </Text>Apellido
+                </Text>
+                <TextInput
+                  className="border border-slate-300 rounded-lg px-4 py-3 text-base bg-white"
+                  placeholder="Pérez"
+                  value={formData.last_name}
+                  onChangeText={(value) => updateField('last_name', value)}
+                  editable={!loading}
+                />
+              </View>
             </View>
 
             {/* Email */}
