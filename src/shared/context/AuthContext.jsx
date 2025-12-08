@@ -44,8 +44,9 @@ export function AuthProvider({ children }) {
   const signIn = async (email, password) => {
     const response = await AuthAPI.login(email, password);
 
-    if (response.token) {
-      await SecureStore.setItemAsync('token', response.token);
+    // El backend devuelve 'access' y 'refresh' (JWT estándar)
+    if (response.access) {
+      await SecureStore.setItemAsync('token', response.access);
     }
     if (response.refresh) {
       await SecureStore.setItemAsync('refreshToken', response.refresh);
@@ -59,9 +60,10 @@ export function AuthProvider({ children }) {
   // Registro + inicio de sesión automático
   const signUp = async (userData) => {
     const response = await AuthAPI.register(userData);
-
-    if (response.token) {
-      await SecureStore.setItemAsync('token', response.token);
+    console.log(response)
+    // Auto-login si el backend devuelve tokens
+    if (response.access) {
+      await SecureStore.setItemAsync('token', response.access);
       if (response.refresh) {
         await SecureStore.setItemAsync('refreshToken', response.refresh);
       }

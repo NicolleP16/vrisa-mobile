@@ -12,9 +12,16 @@ export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
   
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+  };
 
   /**
    * Maneja el proceso de inicio de sesión.
@@ -22,16 +29,16 @@ export default function LoginScreen() {
    */
   const handleLogin = async () => {
     // Validación básica de campos
-    if (!email || !password) {
+    if (!formData.email || !formData.password) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
 
     setLoading(true);
     try {
-      await signIn(email, password); // guarda el token y actualiza el contexto
+      await signIn(formData.email, formData.password);
     } catch (error) {
-      const errors = formatApiErrors(error, 'Error al iniciar sesión');
+      const errors = formatApiErrors(error, 'Error al iniciar sesión. Verifica tus credenciales.');
       Alert.alert('Error', errors.join('\n'));
     } finally {
       setLoading(false);
@@ -51,7 +58,10 @@ export default function LoginScreen() {
           {/* Header */}
           <View className="items-center mb-12">
             <Text className="text-4xl font-bold text-primario mb-2">VRISA</Text>
-            <Text className="text-base text-gray-600">Sistema de Monitoreo Ambiental</Text>
+            <Text className="text-base text-gray-600">¡Bienvenido!</Text>
+            <Text className="text-sm text-gray-500 mt-1">
+              Ingresa tu correo y contraseña para iniciar sesión
+            </Text>
           </View>
 
           {/* Formulario */}
@@ -59,13 +69,13 @@ export default function LoginScreen() {
             {/* Campo de email */}
             <View>
               <Text className="text-sm font-medium text-gray-700 mb-2">
-                Correo electrónico
+                <Text className="text-red-500">* </Text>Correo electrónico
               </Text>
               <TextInput
                 className="border border-gray-300 rounded-lg px-4 py-3 text-base"
-                placeholder="ejemplo@correo.com"
-                value={email}
-                onChangeText={setEmail}
+                placeholder="correo@ejemplo.com"
+                value={formData.email}
+                onChangeText={(value) => handleChange('email', value)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
@@ -76,18 +86,35 @@ export default function LoginScreen() {
             {/* Campo de contraseña */}
             <View>
               <Text className="text-sm font-medium text-gray-700 mb-2">
-                Contraseña
+                <Text className="text-red-500">* </Text>Contraseña
               </Text>
-              <TextInput
-                className="border border-gray-300 rounded-lg px-4 py-3 text-base"
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="password"
-                editable={!loading}
-              />
+              <View className="relative">
+                <TextInput
+                  className="border border-gray-300 rounded-lg px-4 py-3 text-base pr-12"
+                  placeholder="Ingresa tu contraseña"
+                  value={formData.password}
+                  onChangeText={(value) => handleChange('password', value)}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  className="absolute right-3 top-3"
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text className="text-gray-500 text-lg">
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {/* Olvidaste contraseña */}
+            <TouchableOpacity>
+              <Text className="text-primario text-sm text-right">
+                ¿Olvidaste tu contraseña?
+              </Text>
+            </TouchableOpacity>
 
             {/* Botón de Login */}
             <TouchableOpacity
