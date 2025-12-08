@@ -37,6 +37,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(formData.email, formData.password);
+      router.replace("/(tabs)/");
     } catch (error) {
       const errors = formatApiErrors(error, 'Error al iniciar sesión. Verifica tus credenciales.');
       Alert.alert('Error', errors.join('\n'));
