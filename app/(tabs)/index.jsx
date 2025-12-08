@@ -1,14 +1,11 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../../src/shared/context/AuthContext";
 
 /**
- * Página principal de la aplicación móvil.
- * - Si el usuario ya eligió un rol durante el registro, muestra solo ese rol para completar
- * - Si es ciudadano, muestra la vista de ciudadano
- * - Si tiene registro completo, muestra opciones generales
+ * Pantalla principal de la aplicación móvil.
  */
 
 const ORGANIZATION_ROLES = {
@@ -17,9 +14,9 @@ const ORGANIZATION_ROLES = {
   RESEARCHER: 'researcher'
 };
 
-export default function HomePage() {
+export default function HomeScreen() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const { user, signOut, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
 
   // Configuración de roles con sus rutas y datos
@@ -29,73 +26,66 @@ export default function HomePage() {
       desc: "Registra tu organización y gestiona redes de monitoreo.",
       icon: "business",
       gradientColors: ["#3b82f6", "#2563eb"],
-      route: '/register-institution'
+      route: '/complete-registration/institution'
     },
     [ORGANIZATION_ROLES.STATION_ADMIN]: {
       title: "Administrador de Estación",
       desc: "Conecta tus sensores y estaciones a una red existente.",
       icon: "radio",
       gradientColors: ["#a855f7", "#7e22ce"],
-      route: '/register-station'
+      route: '/complete-registration/station'
     },
     [ORGANIZATION_ROLES.RESEARCHER]: {
       title: "Investigador",
       desc: "Accede a datos históricos y análisis de calidad del aire.",
       icon: "analytics",
       gradientColors: ["#6366f1", "#4338ca"],
-      route: '/register-researcher'
+      route: '/complete-registration/researcher'
     }
   };
 
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const userData = await AsyncStorage.getItem("userData");
-      if (userData) {
-        setUser(JSON.parse(userData));
-      } else {
-        setUser({
-          first_name: "Usuario",
-          email: "usuario@example.com"
-        });
-      }
-    } catch (error) {
-      console.error("Error al cargar datos:", error);
-    } finally {
+    if (!authLoading) {
       setLoading(false);
     }
-  };
+  }, [authLoading]);
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem("token");
-      await AsyncStorage.removeItem("userData");
-      router.replace("/");
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-    }
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que deseas cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/(auth)/login');
+            } catch (error) {
+              console.error("Error al cerrar sesión:", error);
+              Alert.alert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');
+            }
+          }
+        }
+      ]
+    );
   };
 
-  // Verificar el estado del usuario
-  const requestedRole = user?.requested_role || user?.role;
-  const isCitizen = user?.belongs_to_organization === false || requestedRole === 'citizen';
-  const hasInstitutionAssigned = user?.institution_id || user?.institution;
-  
-  const hasCompletedRegistration = isCitizen || hasInstitutionAssigned || user?.registration_complete === true;
-  const hasSpecificRole = requestedRole && requestedRole !== 'citizen' && roleConfig[requestedRole];
-  
-  // Determinar qué vista mostrar
-  const shouldShowSingleRole = hasSpecificRole && !hasCompletedRegistration;
-  const shouldShowAllRoleCards = 
-    !isCitizen && 
-    !hasCompletedRegistration && 
-    !hasSpecificRole &&
-    user?.belongs_to_organization === true;
+  // Obtener el rol y estado del usuario
+  const currentRole = user?.primary_role || 'citizen';
+  const roleStatus = user?.role_status || 'APPROVED';
+  const isCitizen = currentRole === 'citizen';
 
-  if (loading) {
+  // Determinar si tiene una solicitud pendiente
+  const isPending = roleStatus === 'PENDING' && !isCitizen;
+  const pendingRoleData = roleConfig[currentRole];
+
+  if (loading || authLoading) {
     return (
       <View className="flex-1 bg-slate-50 items-center justify-center">
         <ActivityIndicator size="large" color="#4339F2" />
@@ -113,7 +103,7 @@ export default function HomePage() {
             <Text className="text-2xl font-bold text-blue-600">VriSA</Text>
           </View>
           <View className="flex-row items-center gap-3">
-            <Text className="text-slate-700 font-medium">Hola, {user?.first_name}</Text>
+            <Text className="text-slate-700 font-medium">Hola, {user?.first_name || 'Usuario'}</Text>
             <Pressable 
               onPress={handleLogout}
               className="border border-red-200 px-3 py-2 rounded-lg active:bg-red-50"
@@ -124,24 +114,24 @@ export default function HomePage() {
         </View>
       </View>
 
-      {/* Banner de completar registro */}
-      {shouldShowSingleRole && (
+      {/* Banner de solicitud pendiente */}
+      {isPending && pendingRoleData && (
         <View className="bg-orange-500 px-6 py-4">
           <View className="flex-row items-center gap-3">
-            <Text className="text-2xl">⚠️</Text>
+            <Ionicons name="alert-circle" size={24} color="white" />
             <View className="flex-1">
               <Text className="text-white font-bold text-base">
-                Tu registro está incompleto
+                Tu solicitud está en proceso.
               </Text>
               <Text className="text-white text-sm mt-1 opacity-95">
-                Completa tu registro como {roleConfig[requestedRole]?.title}
+                Tienes un rol de {pendingRoleData.title} pendiente. Completa tu perfil para agilizar la aprobación.
               </Text>
             </View>
             <Pressable 
-              onPress={() => router.push(roleConfig[requestedRole]?.route)}
+              onPress={() => router.push(pendingRoleData.route)}
               className="bg-white px-5 py-2 rounded-lg active:bg-orange-50"
             >
-              <Text className="text-orange-600 font-semibold">Completar</Text>
+              <Text className="text-orange-600 font-semibold">Completar ahora</Text>
             </Pressable>
           </View>
         </View>
@@ -149,84 +139,32 @@ export default function HomePage() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 py-8">
-          {/* Vista para usuario con rol específico pendiente */}
-          {shouldShowSingleRole && (
+          {/* CASO 1: Usuario con Rol Pendiente */}
+          {isPending && pendingRoleData ? (
             <View className="items-center">
               <View className="mb-8">
                 <Text className="text-3xl font-bold text-slate-900 text-center">
                   ¡Bienvenido a VriSA, {user?.first_name}!
                 </Text>
                 <Text className="text-slate-600 text-center mt-3 text-base">
-                  Completa tu registro como{" "}
-                  <Text className="font-bold">{roleConfig[requestedRole].title}</Text>
-                  {" "}para acceder a todas las funcionalidades.
+                  Has solicitado el rol de <Text className="font-bold">{pendingRoleData.title}</Text>.{"\n"}
+                  Necesitamos información adicional para validar tu cuenta.
                 </Text>
               </View>
 
               <View className="w-full max-w-sm">
                 <RoleCard 
-                  title={roleConfig[requestedRole].title}
-                  desc={roleConfig[requestedRole].desc}
-                  icon={roleConfig[requestedRole].icon}
-                  onPress={() => router.push(roleConfig[requestedRole].route)}
-                  buttonText="Completar registro"
+                  title={pendingRoleData.title}
+                  desc={pendingRoleData.desc}
+                  icon={pendingRoleData.icon}
+                  onPress={() => router.push(pendingRoleData.route)}
+                  buttonText="Continuar Registro"
                   highlight={true}
                 />
               </View>
-
-              <View className="mt-12 bg-white px-6 py-4 rounded-full border border-slate-200">
-                <Text className="text-slate-500 text-sm text-center">
-                  Mientras tanto, explora las opciones del menú
-                </Text>
-              </View>
             </View>
-          )}
-
-          {/* Vista para selección de múltiples roles */}
-          {shouldShowAllRoleCards && (
-            <View>
-              <View className="mb-8">
-                <Text className="text-3xl font-bold text-slate-900 text-center">
-                  ¡Bienvenido a VriSA, {user?.first_name}!
-                </Text>
-                <Text className="text-slate-600 text-center mt-3 text-base">
-                  Selecciona el rol que deseas solicitar para completar tu registro.
-                </Text>
-              </View>
-
-              <View className="gap-6">
-                <RoleCard 
-                  title="Representante de Institución"
-                  desc="Registra tu organización y gestiona redes de monitoreo."
-                  icon="business"
-                  onPress={() => router.push('/register-institution')}
-                />
-                
-                <RoleCard 
-                  title="Administrador de Estación"
-                  desc="Conecta tus sensores y estaciones a una red existente."
-                  icon="radio"
-                  onPress={() => router.push('/register-station')}
-                />
-
-                <RoleCard 
-                  title="Investigador"
-                  desc="Accede a datos históricos y análisis de calidad del aire."
-                  icon="analytics"
-                  onPress={() => router.push('/register-researcher')}
-                />
-              </View>
-
-              <View className="mt-12 bg-white px-6 py-4 rounded-full border border-slate-200">
-                <Text className="text-slate-500 text-sm text-center">
-                  ¿No deseas registrar un rol? Explora las opciones del menú
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Vista para ciudadanos y usuarios con registro completo */}
-          {!shouldShowSingleRole && !shouldShowAllRoleCards && (
+          ) : (
+            /* CASO 2: Usuario Aprobado o Ciudadano */
             <View>
               <View className="mb-8">
                 <Text className="text-3xl font-bold text-slate-900 text-center">
@@ -235,7 +173,7 @@ export default function HomePage() {
                 <Text className="text-slate-600 text-center mt-3 text-base">
                   {isCitizen 
                     ? "Como ciudadano, puedes consultar la calidad del aire y acceder a reportes públicos."
-                    : "Tu registro está completo. Explora las opciones disponibles."
+                    : `Tu perfil de ${currentRole} está activo. Explora las opciones disponibles.`
                   }
                 </Text>
               </View>
@@ -271,7 +209,6 @@ export default function HomePage() {
 }
 
 /* Componentes auxiliares */
-
 function RoleCard({ title, desc, icon, onPress, buttonText = "Seleccionar", highlight = false }) {
   return (
     <Pressable 
@@ -282,7 +219,7 @@ function RoleCard({ title, desc, icon, onPress, buttonText = "Seleccionar", high
           : 'border border-slate-200 shadow-sm active:shadow-md'
       }`}
     >
-      {/* Header con ícono */}
+      {/* Header */}
       <View className="h-32 bg-gradient-to-br from-blue-500 to-blue-600 items-center justify-center">
         <Ionicons name={icon} size={56} color="white" />
       </View>
