@@ -33,9 +33,20 @@ export async function getCurrentUser() {
   return apiFetch(`/users/${userId}/`);
 }
 
+export function getUserById(userId) {
+  return apiFetch(`/users/${userId}/`);
+}
+
 export function updateUser(data) {
   return apiFetch("/users/me", {
     method: "PUT",
     body: JSON.stringify(data),
+  });
+}
+
+export function updateUserProfile(userId, data) {
+  return apiFetch(`/users/${userId}/`, {
+    method: "PUT",
+    body: data,
   });
 }

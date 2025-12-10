@@ -183,22 +183,32 @@ export default function HomeScreen() {
                   icon="grid"
                   title="Dashboard"
                   description="Visualiza el estado de la calidad del aire en tiempo real."
-                  onPress={() => router.push('/dashboard')}
+                  onPress={() => router.push('/(tabs)/dashboard')}
                 />
 
                 <FeatureCard
                   icon="document-text"
                   title="Reportes"
                   description="Consulta informes históricos y estadísticas ambientales."
-                  onPress={() => router.push('/reports')}
+                  onPress={() => router.push('/(tabs)/reports')}
                 />
 
                 <FeatureCard
                   icon="location"
                   title="Estaciones"
                   description="Explora las estaciones de monitoreo disponibles."
-                  onPress={() => router.push('/stations')}
+                  onPress={() => router.push('/(tabs)/stations')}
                 />
+
+                {/* Solo para administradores de estación */}
+                {currentRole === 'station_admin' && roleStatus === 'APPROVED' && (
+                  <FeatureCard
+                    icon="construct"
+                    title="Mantenimiento"
+                    description="Gestiona los registros de mantenimiento de sensores."
+                    onPress={() => router.push('/maintenance/logs')}
+                  />
+                )}
               </View>
             </View>
           )}
