@@ -38,7 +38,7 @@ export default function StationsPage() {
 
       // Si es admin de estación, cargar solo sus estaciones
       const response = isStationAdmin
-        ? await StationAPI.getMyStations()
+        ? await StationAPI.getStations()
         : await StationAPI.getStations();
 
       setStations(Array.isArray(response) ? response : []);
@@ -58,7 +58,7 @@ export default function StationsPage() {
 
   const loadSensors = async (stationId) => {
     try {
-      const response = await SensorAPI.getSensorsByStation(stationId);
+      const response = await SensorAPI.getSensors(stationId);
       setSensors(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error('Error loading sensors:', error);
