@@ -337,10 +337,10 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Selector de rol (solo si pertenece a organización) */}
+            {/* Selector de rol - CORREGIDO: Agregadas keys únicas */}
             {formData.belongsToOrganization === true && (
               <View>
-                <Text className="text-sm font-medium text-slate-700 mb-2">
+                <Text className="text-sm font-semibold text-slate-700 mb-2">
                   <Text className="text-red-500">* </Text>Escoja el rol que desea solicitar
                 </Text>
                 <TouchableOpacity
