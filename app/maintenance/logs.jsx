@@ -14,7 +14,7 @@ import { useAuth } from '../../src/shared/context/AuthContext';
 import { SensorAPI } from '../../src/shared/api';
 
 /**
- * Página de Registros de Mantenimiento
+ * Página de Mantenimiento
  */
 export default function MaintenanceLogsPage() {
   const router = useRouter();

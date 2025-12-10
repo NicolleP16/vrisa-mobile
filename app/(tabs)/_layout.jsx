@@ -1,10 +1,22 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../src/shared/context/AuthContext';
+import { View, ActivityIndicator } from 'react-native';
 
 /**
  * Layout principal con navegación por tabs (pestañas inferiores).
  */
 export default function TabsLayout() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <ActivityIndicator size="large" color="#394BBD" />
+      </View>
+    );
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -36,7 +48,7 @@ export default function TabsLayout() {
           title: 'Dashboard',
           tabBarLabel: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics" size={size} color={color} />
+            <Ionicons name="grid" size={size} color={color} />
           ),
         }}
       />

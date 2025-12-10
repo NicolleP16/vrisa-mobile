@@ -1,6 +1,5 @@
 /**
  * Maneja la sesión del usuario en la app.
- * Permite iniciar sesión, registrarse, cerrar sesión y mantener la sesión activa.
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -9,30 +8,89 @@ import { AuthAPI, UserAPI } from '../api';
 
 const AuthContext = createContext(null);
 
+/**
+ * Decodifica el JWT y extrae los datos del payload
+ */
+const decodeJWT = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decodificando JWT:', error);
+    return null;
+  }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Al abrir la app, se verifica si hay una sesión guardada
   useEffect(() => {
     checkAuth();
   }, []);
+
+  /**
+   * Normaliza los datos del usuario
+   */
+  const normalizeUser = async (userData) => {
+    
+    // Intentar obtener datos del token JWT
+    const token = await SecureStore.getItemAsync('token');
+    const jwtData = token ? decodeJWT(token) : null;
+
+    let primaryRole = userData.primary_role;
+    
+    if (!primaryRole && userData.roles && userData.roles.length > 0) {
+      primaryRole = userData.roles[0].role_name;
+    }
+    
+    if (!primaryRole && jwtData) {
+      primaryRole = jwtData.primary_role;
+    }
+    
+    if (!primaryRole) {
+      primaryRole = 'citizen';
+    }
+
+    let roleStatus = userData.role_status || userData.status;
+    
+    if (!roleStatus && jwtData) {
+      roleStatus = jwtData.role_status;
+    }
+    
+    const normalized = {
+      ...userData,
+      primary_role: primaryRole,
+      role_status: roleStatus,
+      user_id: userData.id || jwtData?.user_id,
+      institution_id: userData.institution?.id || userData.institution_id || jwtData?.institution_id,
+    };
+    return normalized;
+  };
 
   const checkAuth = async () => {
     try {
       const token = await SecureStore.getItemAsync('token');
       if (token) {
         const userData = await UserAPI.getCurrentUser();
-        setUser(userData);
+        const normalizedUser = await normalizeUser(userData);
+        setUser(normalizedUser);
       }
-    } catch {
+    } catch (error) {
+      console.error('Error verificando autenticación:', error);
       await clearSession();
     } finally {
       setLoading(false);
     }
   };
 
-  // Borra todo lo relacionado con la sesión
   const clearSession = async () => {
     await SecureStore.deleteItemAsync('token');
     await SecureStore.deleteItemAsync('refreshToken');
@@ -40,10 +98,8 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  // Inicio de sesión
   const signIn = async (email, password) => {
     const response = await AuthAPI.login(email, password);
-    
     if (response.access) {
       await SecureStore.setItemAsync('token', response.access);
     }
@@ -53,17 +109,20 @@ export function AuthProvider({ children }) {
 
     try {
       const userData = await UserAPI.getCurrentUser();
-      setUser(userData);
-      return userData;
+      
+      const normalizedUser = await normalizeUser(userData);
+      setUser(normalizedUser);
+      
+      return normalizedUser;
     } catch (error) {
+      console.error('Error obteniendo datos del usuario:', error);
       throw error;
     }
   };
 
-  // Registro + inicio de sesión automático
   const signUp = async (userData) => {
     const response = await AuthAPI.register(userData);
-    
+
     if (response.access) {
       await SecureStore.setItemAsync('token', response.access);
       if (response.refresh) {
@@ -71,36 +130,35 @@ export function AuthProvider({ children }) {
       }
 
       const user = await UserAPI.getCurrentUser();
-      setUser(user);
-      return user;
+      const normalizedUser = await normalizeUser(user);
+      setUser(normalizedUser);
+      return normalizedUser;
     }
 
     return response;
   };
 
-  // Cierra sesión
   const signOut = async () => {
     await AuthAPI.logout();
     await clearSession();
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      signIn,
-      signUp,
-      signOut,
-      isAuthenticated: !!user,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
-/**
- * Hook para acceder a los datos y funciones de auth
- */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

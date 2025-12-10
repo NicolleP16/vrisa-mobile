@@ -24,21 +24,21 @@ export default function HomeScreen() {
     [ORGANIZATION_ROLES.INSTITUTION]: {
       title: "Representante de Institución",
       desc: "Registra tu organización y gestiona redes de monitoreo.",
-      icon: "business",
+      icon: "business-outline",
       gradientColors: ["#3b82f6", "#2563eb"],
       route: '/complete-registration/institution'
     },
     [ORGANIZATION_ROLES.STATION_ADMIN]: {
       title: "Administrador de Estación",
       desc: "Conecta tus sensores y estaciones a una red existente.",
-      icon: "radio",
+      icon: "radio-outline",
       gradientColors: ["#a855f7", "#7e22ce"],
       route: '/complete-registration/station'
     },
     [ORGANIZATION_ROLES.RESEARCHER]: {
       title: "Investigador",
       desc: "Accede a datos históricos y análisis de calidad del aire.",
-      icon: "analytics",
+      icon: "flask-outline",
       gradientColors: ["#6366f1", "#4338ca"],
       route: '/complete-registration/researcher'
     }
@@ -180,24 +180,27 @@ export default function HomeScreen() {
 
               <View className="gap-6">
                 <FeatureCard
-                  icon="grid"
+                  icon="grid-outline"
                   title="Dashboard"
                   description="Visualiza el estado de la calidad del aire en tiempo real."
                   onPress={() => router.push('/dashboard')}
+                  gradientColors={["#6366f1", "#4f46e5"]}
                 />
 
                 <FeatureCard
-                  icon="document-text"
+                  icon="document-text-outline"
                   title="Reportes"
                   description="Consulta informes históricos y estadísticas ambientales."
                   onPress={() => router.push('/reports')}
+                  gradientColors={["#8b5cf6", "#7c3aed"]}
                 />
 
                 <FeatureCard
-                  icon="location"
+                  icon="radio-outline"
                   title="Estaciones"
                   description="Explora las estaciones de monitoreo disponibles."
                   onPress={() => router.push('/stations')}
+                  gradientColors={["#3b82f6", "#2563eb"]}
                 />
               </View>
             </View>
@@ -252,13 +255,16 @@ function RoleCard({ title, desc, icon, onPress, buttonText = "Seleccionar", high
   );
 }
 
-function FeatureCard({ icon, title, description, onPress }) {
+function FeatureCard({ icon, title, description, onPress, gradientColors = ["#6366f1", "#4f46e5"] }) {
   return (
     <Pressable 
       onPress={onPress}
       className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm active:shadow-md active:border-indigo-300"
     >
-      <View className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl items-center justify-center mb-4">
+      <View
+        className="w-16 h-16 rounded-2xl items-center justify-center mb-4"
+        style={{ backgroundColor: gradientColors[0] }}
+      >
         <Ionicons name={icon} size={32} color="white" />
       </View>
       
