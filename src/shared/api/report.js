@@ -18,49 +18,49 @@ export const getGeneralReports = () => {
 /**
  * Función genérica para descargar archivos PDF.
  * Descarga el archivo y lo abre para compartir.
- * 
- * @param {string} endpoint - La URL relativa del endpoint de la API.
+ * * @param {string} endpoint - La URL relativa del endpoint de la API.
  * @param {string} filename - Nombre del archivo a guardar.
  * @returns {Promise<void>}
  */
 const downloadBlob = async (endpoint, filename = 'reporte_vrisa.pdf') => {
-  const token = await AsyncStorage.getItem('token');
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+    const token = await AsyncStorage.getItem('token');
+    
+    const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000'; 
+    
+    try {
+      console.log(`Iniciando descarga desde: ${endpoint}`);
+      
+      const url = `${API_URL}${endpoint}`;
+      
+      // Definir ruta local
+      const fileUri = FileSystem.documentDirectory + filename;
+      const result = await FileSystem.downloadAsync(
+        url,
+        fileUri,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
   
-  try {
-    console.log(`Iniciando descarga desde: ${endpoint}`);
-    
-    // Construir URL completa
-    const url = `${API_URL}${endpoint}`;
-    
-    // Configurar la descarga
-    const downloadResumable = FileSystem.createDownloadResumable(
-      url,
-      FileSystem.documentDirectory + filename,
-      {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      const uri = result.uri;
+  
+      console.log('Archivo descargado en:', uri);
+  
+      // Compartir el archivo
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Guardar reporte',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        throw new Error('Compartir no está disponible en este dispositivo');
       }
-    );
-
-    // Ejecutar descarga
-    const { uri } = await downloadResumable.downloadAsync();
-    console.log('Archivo descargado en:', uri);
-
-    // Compartir el archivo
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Guardar reporte',
-        UTI: 'com.adobe.pdf',
-      });
-    } else {
-      throw new Error('Compartir no está disponible en este dispositivo');
+    } catch (error) {
+      console.error('Error crítico en downloadBlob:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error crítico en downloadBlob:', error);
-    throw error;
-  }
-};
+  };
 
 /**
  * Descarga el Reporte de Calidad del Aire (Resumen Estadístico).

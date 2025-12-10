@@ -33,10 +33,6 @@ export async function getCurrentUser() {
   return apiFetch(`/users/${userId}/`);
 }
 
-export function getUserById(userId) {
-  return apiFetch(`/users/${userId}/`);
-}
-
 export function updateUser(data) {
   return apiFetch("/users/me", {
     method: "PUT",
@@ -50,3 +46,30 @@ export function updateUserProfile(userId, data) {
     body: data,
   });
 }
+
+/**
+ * Función para obtener los datos del usuario por ID.
+ * @param {number|string} userId - ID del usuario
+ */
+export function getUserById(userId) {
+  return apiFetch(`/users/${userId}/`);
+}
+
+/**
+ * Obtiene estadísticas generales de usuarios (solo admins).
+ * Endpoint: GET /api/users/stats/
+ */
+export function getUserStats() {
+  return apiFetch("/users/stats/", {
+    method: "GET",
+  });
+}
+
+/**
+ * Objeto agrupador para importaciones limpias
+ */
+export const UserAPI = {
+  getUserById,
+  updateUser,
+  getUserStats,
+};
