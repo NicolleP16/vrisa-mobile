@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { MeasurementAPI, StationAPI } from "../../src/shared/api";
 import { MetricsView, TrendsView } from "../../src/shared/components";
+import { useAuth } from "../../src/shared/context/AuthContext";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const {user: authUser} = useAuth();
   const [activeView, setActiveView] = useState("metrics");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -118,9 +120,11 @@ export default function DashboardPage() {
 
       {/* Header */}
       <View className="bg-primario px-4 pt-6 pb-14 mb-[-25px]">
-        <Text className="text-white text-lg">Hola, {user?.first_name || "Usuario"}</Text>
+        <Text className="text-white text-lg">
+          Hola, {authUser?.first_name || user?.first_name || "Usuario"}
+        </Text>
         <Text className="text-white text-2xl font-bold mt-1">Calidad del Aire</Text>
-        {user?.institution_name && <Text className="text-white/80 text-sm mt-1">{user.institution_name}</Text>}
+        {(authUser?.institution_name || user?.institution_name) && <Text className="text-white/80 text-sm mt-1">{authUser?.institution_name || user?.institution_name}</Text>}
       </View>
 
       {/* Control de Tabs */}
