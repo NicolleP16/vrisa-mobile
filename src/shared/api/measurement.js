@@ -24,12 +24,23 @@ export const getHistoricalData = (filters) => {
  * @returns {Promise<object>} Datos del AQI actual.
  */
 export const getCurrentAQI = (stationId) => {
-  const queryString = stationId ? `?station_id=${stationId}` : '';
+  const queryString = stationId ? `?station_id=${stationId}` : "";
   return apiFetch(`/measurements/aqi/current/${queryString}`);
+};
+
+/**
+ * Obtiene las últimas mediciones para una estación dada o para todas las estaciones.
+ * @param {string} stationId - (Opcional) ID de la estación.
+ * @returns {Promise<object[]>} Últimas mediciones.
+ */
+export const getLatestMeasurements = (stationId) => {
+  const queryString = stationId ? `?station_id=${stationId}` : "";
+  return apiFetch(`/measurements/latest/${queryString}`);
 };
 
 export const MeasurementAPI = {
   getVariables,
   getHistoricalData,
+  getLatestMeasurements,
   getCurrentAQI,
 };

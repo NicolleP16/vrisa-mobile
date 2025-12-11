@@ -188,7 +188,7 @@ export default function HomeScreen() {
 
         <View className="gap-6">
           {isInstitutionWorker ? (
-            <>
+            <View>
               <FeatureCard
                 icon="grid-outline"
                 title="Dashboard"
@@ -212,9 +212,9 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(tabs)/reports')}
                 gradientColors={["#8b5cf6", "#7c3aed"]} 
               />
-            </>
+            </View>
           ) : (
-            <>
+            <View>
               <FeatureCard
                 icon="grid-outline"
                 title="Dashboard"
@@ -238,7 +238,7 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(tabs)/stations')}
                 gradientColors={["#3b82f6", "#2563eb"]} 
               />
-            </>
+            </View>
           )}
         </View>
       </View>
