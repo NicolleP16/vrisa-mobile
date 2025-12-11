@@ -1,5 +1,4 @@
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 import { API_HOST, API_PORT } from '@env';
 
 // Validar que las variables estén configuradas
@@ -12,7 +11,10 @@ if (!API_HOST || !API_PORT) {
   );
 }
 
-const BASE_URL = `http://${API_HOST}:${API_PORT}/api`;
+// Construir la URL base de la API, considerando el puerto 443 para Ngrok
+const BASE_URL = API_PORT === '443' 
+  ? `https://${API_HOST}/api`
+  : `http://${API_HOST}:${API_PORT}/api`;
 
 export class ApiError extends Error {
   constructor(message, status, data) {
