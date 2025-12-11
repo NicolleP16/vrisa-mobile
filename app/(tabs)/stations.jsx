@@ -36,21 +36,33 @@ export default function StationsPage() {
     try {
       setLoading(true);
 
-      // Si es admin de estación, cargar solo sus estaciones
-      const response = isStationAdmin
-        ? await StationAPI.getStations()
-        : await StationAPI.getStations();
+      // Cargar todas las estaciones disponibles
+      const response = await StationAPI.getStations();
 
-      setStations(Array.isArray(response) ? response : []);
+      const stationsArray = Array.isArray(response) ? response : [];
+      setStations(stationsArray);
 
       // Si es admin de estación y hay estaciones, cargar sensores de la primera
-      if (isStationAdmin && response?.length > 0) {
-        await loadSensors(response[0].id);
-        setSelectedStation(response[0]);
+      if (isStationAdmin && stationsArray.length > 0) {
+        await loadSensors(stationsArray[0].id);
+        setSelectedStation(stationsArray[0]);
       }
     } catch (error) {
-      console.error('Error loading stations:', error);
-      Alert.alert('Error', 'No se pudieron cargar las estaciones');
+      console.error('Error al cargar estaciones:', error);
+
+      // Mostrar mensaje más descriptivo según el tipo de error
+      if (error.status === 0) {
+        Alert.alert(
+          'Error de conexión',
+          'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          'No se pudieron cargar las estaciones. Por favor, intenta nuevamente.'
+        );
+      }
+      setStations([]);
     } finally {
       setLoading(false);
     }
