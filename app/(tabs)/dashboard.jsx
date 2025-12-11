@@ -22,13 +22,30 @@ export default function DashboardPage() {
   const COLOR_NORMAL = "#22C55E";
   const COLOR_ALERT = "#EF4444";
 
+  // Hook para inicialización única al montar
   useEffect(() => {
     initDashboard();
   }, []);
 
+  // Hook de intervalo de actualización automática
+  useEffect(() => {
+    let intervalId;
+
+    // Solo iniciamos el intervalo si ya terminamos la carga inicial
+    if (!loading) {
+      intervalId = setInterval(() => {
+        loadDashboardData(true);
+      }, 5000); // 5 segundos
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [loading]);
+
   const initDashboard = async () => {
     try {
-      setLoading(true);
+      setLoading(true); // Pantalla blanca de carga
       const storedData = await AsyncStorage.getItem("userData");
       const token = await AsyncStorage.getItem("token");
 
@@ -40,22 +57,23 @@ export default function DashboardPage() {
       const parsedUser = JSON.parse(storedData);
       setUser(parsedUser);
 
+      // Actualizar datos del usuario en segundo plano
       if (parsedUser.user_id) {
-        try {
-          const freshUserData = await UserAPI.getUserById(parsedUser.user_id);
-          const mergedUser = {
-            ...parsedUser,
-            ...freshUserData,
-            institution_name: freshUserData.institution?.institute_name,
-          };
-          setUser(mergedUser);
-          await AsyncStorage.setItem("userData", JSON.stringify(mergedUser));
-        } catch (apiError) {
-          console.error("Error actualizando usuario:", apiError);
-        }
+        UserAPI.getUserById(parsedUser.user_id)
+          .then(async (freshUserData) => {
+            const mergedUser = {
+              ...parsedUser,
+              ...freshUserData,
+              institution_name: freshUserData.institution?.institute_name,
+            };
+            setUser(mergedUser);
+            await AsyncStorage.setItem("userData", JSON.stringify(mergedUser));
+          })
+          .catch((err) => console.error("Error background user update:", err));
       }
 
-      await loadDashboardData();
+      // Carga inicial de datos
+      await loadDashboardData(false);
     } catch (err) {
       console.error("Error inicialización:", err);
       Alert.alert("Error", "Sesión expirada o inválida");
@@ -66,9 +84,12 @@ export default function DashboardPage() {
     }
   };
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (silent = false) => {
     try {
-      setAqiLoading(true);
+      if (!silent) {
+        setAqiLoading(true);
+      }
+
       // Cargar estaciones
       const stationsResponse = await StationAPI.getStations().catch((err) => {
         console.log("Error Stations:", err);
@@ -78,54 +99,43 @@ export default function DashboardPage() {
       const loadedStations = Array.isArray(stationsResponse) ? stationsResponse : [];
       setStations(loadedStations);
 
-      // Determinar ID de estación (Usar la primera disponible o null)
       const stationId = loadedStations.length > 0 ? loadedStations[0].id : null;
 
-      // Cargar datos de AQI y mediciones más recientes
+      // Cargar métricas
       try {
-        const [aqiResponse, measurementsResponse] = await Promise.all([
-          MeasurementAPI.getCurrentAQI(stationId),
-          MeasurementAPI.getLatestMeasurements(stationId)
-        ]);
+        const [aqiResponse, measurementsResponse] = await Promise.all([MeasurementAPI.getCurrentAQI(stationId), MeasurementAPI.getLatestMeasurements(stationId)]);
 
         setAqiData(aqiResponse);
-        setLatestMeasurements(measurementsResponse); // Guardamos la respuesta cruda (TEMP, HUM, etc.)
-
+        setLatestMeasurements(measurementsResponse);
       } catch (error) {
         console.log("Error cargando métricas:", error);
-        setAqiData(null);
-        setLatestMeasurements(null);
+        if (!silent) {
+          setAqiData(null);
+          setLatestMeasurements(null);
+        }
       }
     } catch (error) {
-      console.error("Error cargando dashboard:", error);
-      setAqiData(null);
-      setLatestMeasurements(null);
+      console.error("Error general dashboard:", error);
     } finally {
-      setAqiLoading(false);
+      if (!silent) {
+        setAqiLoading(false);
+      }
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadDashboardData();
+    await loadDashboardData(false);
     setRefreshing(false);
   };
 
-  const metricsConfig = [
-    {key: "PM2.5", label: "PM2.5", icon: <Ionicons name="cloud" size={20} color={ICON_COLOR} />},
-    {key: "PM10", label: "PM10", icon: <MaterialCommunityIcons name="weather-fog" size={20} color={ICON_COLOR} />},
-    {key: "CO", label: "CO", icon: <MaterialCommunityIcons name="factory" size={20} color={ICON_COLOR} />},
-    {key: "NO2", label: "NO2", icon: <Ionicons name="flame" size={20} color={ICON_COLOR} />},
-    {key: "SO2", label: "SO2", icon: <Ionicons name="flash" size={20} color={ICON_COLOR} />},
-    {key: "O3", label: "OZONO", icon: <MaterialCommunityIcons name="weather-windy" size={20} color={ICON_COLOR} />},
-  ];
 
   const getPollutantStatus = (key) => {
-    if (aqiLoading) {
+    // Solo mostramos "Cargando..." si estamos cargando y NO hay datos.
+    if (aqiLoading && !aqiData) {
       return {value: "...", color: "#e2e8f0", label: "Cargando..."};
     }
 
-    // Terminó de cargar pero no hay datos (API devolvió null o error)
     if (!aqiData || !aqiData.sub_indices) {
       return {value: "--", color: "#e2e8f0", label: "Sin datos"};
     }
@@ -141,17 +151,29 @@ export default function DashboardPage() {
     };
   };
 
-  // Helper para formatear valores climáticos desde latestMeasurements
   const formatClimateValue = (key, unit, defaultText = "--") => {
-    if (aqiLoading) return "...";
     const item = latestMeasurements?.[key];
+
     if (item && item.value !== undefined && item.value !== null) {
       return `${Math.round(item.value)}${item.unit || unit}`;
     }
+
+    // Solo si no hay datos y estamos cargando, se muestra "..."
+    if (aqiLoading) return "...";
+
     return defaultText;
   };
 
-  // Verificación de registro
+  const metricsConfig = [
+    {key: "PM2.5", label: "PM2.5", icon: <Ionicons name="cloud" size={20} color={ICON_COLOR} />},
+    {key: "PM10", label: "PM10", icon: <MaterialCommunityIcons name="weather-fog" size={20} color={ICON_COLOR} />},
+    {key: "CO", label: "CO", icon: <MaterialCommunityIcons name="factory" size={20} color={ICON_COLOR} />},
+    {key: "NO2", label: "NO2", icon: <Ionicons name="flame" size={20} color={ICON_COLOR} />},
+    {key: "SO2", label: "SO2", icon: <Ionicons name="flash" size={20} color={ICON_COLOR} />},
+    {key: "O3", label: "OZONO", icon: <MaterialCommunityIcons name="weather-windy" size={20} color={ICON_COLOR} />},
+  ];
+
+  // Verificaciones de usuario...
   const isCitizen = !user?.belongs_to_organization || user?.requested_role === "citizen";
   const hasInstitutionAssigned = user?.institution_id || user?.institution;
   const needsRegistrationCompletion = !isCitizen && !user?.registration_complete && !hasInstitutionAssigned;
@@ -192,7 +214,7 @@ export default function DashboardPage() {
       <View className="px-4 mb-4">
         <StatCard
           label="ÍNDICE DE CALIDAD (AQI)"
-          value={aqiLoading ? "..." : aqiData ? String(Math.round(aqiData.aqi)) : "--"}
+          value={aqiData ? String(Math.round(aqiData.aqi)) : aqiLoading ? "..." : "--"}
           unit={aqiData?.category || "Sin datos"}
           icon={<Ionicons name="pulse" size={24} color={aqiData?.color || ICON_COLOR} />}
           colorHex={aqiData?.color || "#e2e8f0"}
@@ -221,20 +243,10 @@ export default function DashboardPage() {
         <Text className="text-lg font-bold text-gray-800 mb-3">Clima</Text>
         <View className="flex-row justify-between">
           <View style={{width: "48%"}}>
-            <StatCard
-              label="TEMPERATURA"
-              value={formatClimateValue("TEMP", "°C")}
-              unit="Ambiente"
-              icon={<Ionicons name="thermometer" size={20} color={ICON_COLOR} />}
-            />
+            <StatCard label="TEMPERATURA" value={formatClimateValue("TEMP", "°C")} unit="Ambiente" icon={<Ionicons name="thermometer" size={20} color={ICON_COLOR} />} />
           </View>
           <View style={{width: "48%"}}>
-            <StatCard
-              label="HUMEDAD"
-              value={formatClimateValue("HUM", "%")}
-              unit="Relativa"
-              icon={<Ionicons name="water" size={20} color={ICON_COLOR} />}
-            />
+            <StatCard label="HUMEDAD" value={formatClimateValue("HUM", "%")} unit="Relativa" icon={<Ionicons name="water" size={20} color={ICON_COLOR} />} />
           </View>
         </View>
       </View>
