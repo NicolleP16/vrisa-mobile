@@ -1,25 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../src/shared/context/AuthContext';
-import { UserAPI } from '../../src/shared/api';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { UserAPI } from "../../src/shared/api";
+import { useAuth } from "../../src/shared/context/AuthContext";
 
 /**
  * Página de Perfil de Usuario
  */
 export default function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const router = useRouter();
+  const {user, signOut} = useAuth();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState("personal");
 
   useEffect(() => {
     loadUserData();
@@ -33,47 +27,51 @@ export default function ProfilePage() {
         setUserData(response);
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error("Error loading user data:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro que deseas cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: () => signOut(),
+    Alert.alert("Cerrar Sesión", "¿Estás seguro que deseas cerrar sesión?", [
+      {text: "Cancelar", style: "cancel"},
+      {
+        text: "Cerrar Sesión",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+            router.replace("/(auth)/login");
+          } catch (error) {
+            console.error("Error al cerrar sesión:", error);
+            Alert.alert("Error", "No se pudo cerrar sesión. Intenta nuevamente.");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const getRoleLabel = (role) => {
     const roles = {
-      citizen: 'Ciudadano',
-      station_admin: 'Administrador de Estación',
-      researcher: 'Investigador',
-      institution: 'Representante de Institución',
-      super_admin: 'Super Administrador',
+      citizen: "Ciudadano",
+      station_admin: "Administrador de Estación",
+      researcher: "Investigador",
+      institution: "Representante de Institución",
+      super_admin: "Super Administrador",
     };
     return roles[role] || role;
   };
 
   const getRoleIcon = (role) => {
     const icons = {
-      citizen: 'person',
-      station_admin: 'radio',
-      researcher: 'flask',
-      institution: 'business',
-      super_admin: 'shield-checkmark',
+      citizen: "person",
+      station_admin: "radio",
+      researcher: "flask",
+      institution: "business",
+      super_admin: "shield-checkmark",
     };
-    return icons[role] || 'person';
+    return icons[role] || "person";
   };
 
   if (loading) {
@@ -93,19 +91,13 @@ export default function ProfilePage() {
       <View className="bg-primario px-4 pt-6 pb-20">
         <View className="items-center">
           <View className="bg-white rounded-full w-24 h-24 items-center justify-center mb-4">
-            <Ionicons
-              name={getRoleIcon(displayData?.primary_role)}
-              size={48}
-              color="#394BBD"
-            />
+            <Ionicons name={getRoleIcon(displayData?.primary_role)} size={48} color="#394BBD" />
           </View>
           <Text className="text-white text-2xl font-bold">
             {displayData?.first_name} {displayData?.last_name}
           </Text>
           <View className="bg-white/20 px-4 py-2 rounded-full mt-2">
-            <Text className="text-white text-sm">
-              {getRoleLabel(displayData?.primary_role)}
-            </Text>
+            <Text className="text-white text-sm">{getRoleLabel(displayData?.primary_role)}</Text>
           </View>
         </View>
       </View>
@@ -113,67 +105,37 @@ export default function ProfilePage() {
       {/* Tabs */}
       <View className="px-4 -mt-12 mb-6">
         <View className="bg-white rounded-lg p-1 shadow-md flex-row">
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded ${
-              activeTab === 'personal' ? 'bg-primario' : ''
-            }`}
-            onPress={() => setActiveTab('personal')}
-          >
-            <Text
-              className={`text-center font-semibold ${
-                activeTab === 'personal' ? 'text-white' : 'text-gray-600'
-              }`}
-            >
-              Datos Personales
-            </Text>
+          <TouchableOpacity className={`flex-1 py-3 rounded ${activeTab === "personal" ? "bg-primario" : ""}`} onPress={() => setActiveTab("personal")}>
+            <Text className={`text-center font-semibold ${activeTab === "personal" ? "text-white" : "text-gray-600"}`}>Datos Personales</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded ${
-              activeTab === 'security' ? 'bg-primario' : ''
-            }`}
-            onPress={() => setActiveTab('security')}
-          >
-            <Text
-              className={`text-center font-semibold ${
-                activeTab === 'security' ? 'text-white' : 'text-gray-600'
-              }`}
-            >
-              Seguridad
-            </Text>
+          <TouchableOpacity className={`flex-1 py-3 rounded ${activeTab === "security" ? "bg-primario" : ""}`} onPress={() => setActiveTab("security")}>
+            <Text className={`text-center font-semibold ${activeTab === "security" ? "text-white" : "text-gray-600"}`}>Seguridad</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Contenido del tab */}
       <View className="px-4">
-        {activeTab === 'personal' ? (
+        {activeTab === "personal" ? (
           <View className="bg-white rounded-lg p-4 shadow-md">
-            <Text className="text-lg font-bold text-gray-800 mb-4">
-              Información Personal
-            </Text>
+            <Text className="text-lg font-bold text-gray-800 mb-4">Información Personal</Text>
 
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
-                Nombre
-              </Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">Nombre</Text>
               <View className="bg-gray-50 rounded-lg px-4 py-3">
                 <Text className="text-gray-800">{displayData?.first_name}</Text>
               </View>
             </View>
 
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
-                Apellido
-              </Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">Apellido</Text>
               <View className="bg-gray-50 rounded-lg px-4 py-3">
                 <Text className="text-gray-800">{displayData?.last_name}</Text>
               </View>
             </View>
 
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
-                Correo Electrónico
-              </Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">Correo Electrónico</Text>
               <View className="bg-gray-50 rounded-lg px-4 py-3">
                 <Text className="text-gray-800">{displayData?.email}</Text>
               </View>
@@ -181,9 +143,7 @@ export default function ProfilePage() {
 
             {displayData?.phone && (
               <View className="mb-4">
-                <Text className="text-sm font-semibold text-gray-700 mb-2">
-                  Teléfono
-                </Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-2">Teléfono</Text>
                 <View className="bg-gray-50 rounded-lg px-4 py-3">
                   <Text className="text-gray-800">{displayData.phone}</Text>
                 </View>
@@ -192,9 +152,7 @@ export default function ProfilePage() {
 
             {displayData?.job_title && (
               <View className="mb-4">
-                <Text className="text-sm font-semibold text-gray-700 mb-2">
-                  Cargo
-                </Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-2">Cargo</Text>
                 <View className="bg-gray-50 rounded-lg px-4 py-3">
                   <Text className="text-gray-800">{displayData.job_title}</Text>
                 </View>
@@ -203,9 +161,7 @@ export default function ProfilePage() {
 
             {displayData?.institution_name && (
               <View className="mb-4">
-                <Text className="text-sm font-semibold text-gray-700 mb-2">
-                  Institución
-                </Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-2">Institución</Text>
                 <View className="bg-gray-50 rounded-lg px-4 py-3">
                   <Text className="text-gray-800">{displayData.institution_name}</Text>
                 </View>
@@ -216,28 +172,22 @@ export default function ProfilePage() {
               <View className="flex-row items-start">
                 <Ionicons name="information-circle" size={20} color="#3B82F6" />
                 <Text className="text-sm text-blue-700 ml-2 flex-1">
-                  Los datos personales no pueden ser modificados directamente.
-                  Contacta al administrador para realizar cambios.
+                  Los datos personales no pueden ser modificados directamente. Contacta al administrador para realizar cambios.
                 </Text>
               </View>
             </View>
           </View>
         ) : (
           <View className="bg-white rounded-lg p-4 shadow-md">
-            <Text className="text-lg font-bold text-gray-800 mb-4">
-              Seguridad
-            </Text>
+            <Text className="text-lg font-bold text-gray-800 mb-4">Seguridad</Text>
 
             <View className="bg-amber-50 rounded-lg p-4">
               <View className="flex-row items-start">
                 <Ionicons name="lock-closed" size={20} color="#F59E0B" />
                 <View className="ml-3 flex-1">
-                  <Text className="text-sm font-semibold text-amber-700 mb-1">
-                    Cambio de Contraseña
-                  </Text>
+                  <Text className="text-sm font-semibold text-amber-700 mb-1">Cambio de Contraseña</Text>
                   <Text className="text-sm text-amber-600">
-                    Para modificar tu contraseña, debes contactar al administrador
-                    del sistema o usar el flujo de recuperación de contraseña.
+                    Para modificar tu contraseña, debes contactar al administrador del sistema o usar el flujo de recuperación de contraseña.
                   </Text>
                 </View>
               </View>
@@ -248,14 +198,9 @@ export default function ProfilePage() {
 
       {/* Botón de cerrar sesión */}
       <View className="px-4 mt-6 mb-8">
-        <TouchableOpacity
-          className="bg-red-500 rounded-lg py-4 flex-row items-center justify-center shadow-md"
-          onPress={handleLogout}
-        >
+        <TouchableOpacity className="bg-red-500 rounded-lg py-4 flex-row items-center justify-center shadow-md" onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={24} color="white" />
-          <Text className="text-white font-bold text-lg ml-2">
-            Cerrar Sesión
-          </Text>
+          <Text className="text-white font-bold text-lg ml-2">Cerrar Sesión</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
