@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [aqiData, setAqiData] = useState(null);
   const [stations, setStations] = useState([]);
   const [aqiLoading, setAqiLoading] = useState(true);
+  const [latestMeasurements, setLatestMeasurements] = useState(null);
 
   const ICON_COLOR = "#64748b";
   const COLOR_NORMAL = "#22C55E";
@@ -68,7 +69,7 @@ export default function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       setAqiLoading(true);
-      // 1. Cargar estaciones primero
+      // Cargar estaciones
       const stationsResponse = await StationAPI.getStations().catch((err) => {
         console.log("Error Stations:", err);
         return [];
@@ -77,20 +78,28 @@ export default function DashboardPage() {
       const loadedStations = Array.isArray(stationsResponse) ? stationsResponse : [];
       setStations(loadedStations);
 
-      // 2. Determinar ID de estación (Usar la primera disponible o null)
+      // Determinar ID de estación (Usar la primera disponible o null)
       const stationId = loadedStations.length > 0 ? loadedStations[0].id : null;
 
-      // 3. Cargar AQI solo si hay estación
+      // Cargar datos de AQI y mediciones más recientes
       try {
-        const aqiResponse = await MeasurementAPI.getCurrentAQI(stationId);
+        const [aqiResponse, measurementsResponse] = await Promise.all([
+          MeasurementAPI.getCurrentAQI(stationId),
+          MeasurementAPI.getLatestMeasurements(stationId)
+        ]);
+
         setAqiData(aqiResponse);
+        setLatestMeasurements(measurementsResponse); // Guardamos la respuesta cruda (TEMP, HUM, etc.)
+
       } catch (error) {
-        console.log("Error AQI:", error);
+        console.log("Error cargando métricas:", error);
         setAqiData(null);
+        setLatestMeasurements(null);
       }
     } catch (error) {
       console.error("Error cargando dashboard:", error);
       setAqiData(null);
+      setLatestMeasurements(null);
     } finally {
       setAqiLoading(false);
     }
@@ -130,6 +139,16 @@ export default function DashboardPage() {
       color: isDominant ? COLOR_ALERT : COLOR_NORMAL,
       label: isDominant ? "Dominante" : "Normal",
     };
+  };
+
+  // Helper para formatear valores climáticos desde latestMeasurements
+  const formatClimateValue = (key, unit, defaultText = "--") => {
+    if (aqiLoading) return "...";
+    const item = latestMeasurements?.[key];
+    if (item && item.value !== undefined && item.value !== null) {
+      return `${Math.round(item.value)}${item.unit || unit}`;
+    }
+    return defaultText;
   };
 
   // Verificación de registro
@@ -204,7 +223,7 @@ export default function DashboardPage() {
           <View style={{width: "48%"}}>
             <StatCard
               label="TEMPERATURA"
-              value={aqiData?.temperature ? `${Math.round(aqiData.temperature)}°C` : "24°C"}
+              value={formatClimateValue("TEMP", "°C")}
               unit="Ambiente"
               icon={<Ionicons name="thermometer" size={20} color={ICON_COLOR} />}
             />
@@ -212,7 +231,7 @@ export default function DashboardPage() {
           <View style={{width: "48%"}}>
             <StatCard
               label="HUMEDAD"
-              value={aqiData?.humidity ? `${Math.round(aqiData.humidity)}%` : "68%"}
+              value={formatClimateValue("HUM", "%")}
               unit="Relativa"
               icon={<Ionicons name="water" size={20} color={ICON_COLOR} />}
             />
