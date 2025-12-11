@@ -72,4 +72,5 @@ export const UserAPI = {
   getUserById,
   updateUser,
   getUserStats,
+  getCurrentUser
 };
