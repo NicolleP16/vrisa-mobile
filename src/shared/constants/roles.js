@@ -1,46 +1,54 @@
 /**
- * Roles disponibles para usuarios que pertenecen a organizaciones ambientales
- * Estos roles requieren completar el registro después del login inicial
+ * Mapa de todos los roles del sistema (mapeados desde el backend)
  */
-export const ORGANIZATION_ROLES = {
+export const USER_ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  INSTITUTION_HEAD: 'institution_head',
   STATION_ADMIN: 'station_admin',
   RESEARCHER: 'researcher',
-  INSTITUTION_WORKER: 'institution_worker'
+  CITIZEN: 'citizen',
+  INSTITUTION_MEMBER: 'institution_member'
 };
 
 /**
- * Configuración de roles con etiquetas para mostrar en UI
+ * Roles disponibles para solicitar en el registro (Organizaciones)
+ */
+export const ORGANIZATION_ROLES = {
+  STATION_ADMIN: USER_ROLES.STATION_ADMIN,
+  RESEARCHER: USER_ROLES.RESEARCHER,
+  INSTITUTION_HEAD: USER_ROLES.INSTITUTION_HEAD 
+};
+
+/**
+ * Configuración de roles para formularios y selección
  */
 export const ORGANIZATION_ROLES_CONFIG = [
   { 
-    value: ORGANIZATION_ROLES.STATION_ADMIN, 
+    value: USER_ROLES.STATION_ADMIN, 
     label: 'Administrador de estación',
     description: 'Gestiona estaciones de monitoreo y sensores'
   },
   { 
-    value: ORGANIZATION_ROLES.RESEARCHER, 
+    value: USER_ROLES.RESEARCHER, 
     label: 'Investigador',
     description: 'Acceso a datos y reportes para investigación'
   },
   { 
-    value: ORGANIZATION_ROLES.INSTITUTION_WORKER, 
-    label: 'Trabajador de institución ambiental',
-    description: 'Personal de instituciones ambientales'
+    value: USER_ROLES.INSTITUTION_HEAD, 
+    label: 'Representante de Institución',
+    description: 'Gestiona la red de monitoreo de una entidad'
   }
 ];
 
 /**
- * Rol por defecto para usuarios generales (ciudadanos)
+ * Rol de usuario por defecto al registrarse
  */
-export const DEFAULT_USER_ROLE = 'citizen';
+export const DEFAULT_USER_ROLE = USER_ROLES.CITIZEN;
 
 /**
- * Estados de registro del usuario
+ * Estados de registro de usuario
  */
 export const REGISTRATION_STATUS = {
   COMPLETE: 'complete',
   PENDING_ROLE_COMPLETION: 'pending_role_completion'
 };
-
-
-
