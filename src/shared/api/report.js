@@ -1,11 +1,13 @@
 import { apiFetch } from './http';
-import * as FileSystem from 'expo-file-system';
+import { documentDirectory, File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { API_HOST, API_PORT } from '@env';
 
 /**
  * API para reportes
  */
+const BASE_URL = `http://${API_HOST}:${API_PORT}/api`;
 
 /**
  * Obtiene el listado general de reportes disponibles (metadata).
@@ -18,49 +20,91 @@ export const getGeneralReports = () => {
 /**
  * Función genérica para descargar archivos PDF.
  * Descarga el archivo y lo abre para compartir.
- * * @param {string} endpoint - La URL relativa del endpoint de la API.
+ * @param {string} endpoint - La URL relativa del endpoint de la API.
  * @param {string} filename - Nombre del archivo a guardar.
  * @returns {Promise<void>}
  */
 const downloadBlob = async (endpoint, filename = 'reporte_vrisa.pdf') => {
-    const token = await AsyncStorage.getItem('token');
+  try {
+    const token = await SecureStore.getItemAsync('token');
     
-    const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000'; 
-    
-    try {
-      console.log(`Iniciando descarga desde: ${endpoint}`);
-      
-      const url = `${API_URL}${endpoint}`;
-      
-      // Definir ruta local
-      const fileUri = FileSystem.documentDirectory + filename;
-      const result = await FileSystem.downloadAsync(
-        url,
-        fileUri,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
-      );
-  
-      const uri = result.uri;
-  
-      console.log('Archivo descargado en:', uri);
-  
-      // Compartir el archivo
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Guardar reporte',
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        throw new Error('Compartir no está disponible en este dispositivo');
-      }
-    } catch (error) {
-      console.error('Error crítico en downloadBlob:', error);
-      throw error;
+    if (!token) {
+      throw new Error('No hay token de autenticación. Por favor inicia sesión nuevamente.');
     }
-  };
+    
+    const url = `${BASE_URL}${endpoint}`;
+    
+    console.log(`Iniciando descarga desde: ${url}`);
+    console.log('Token presente:', token ? 'Sí' : 'No');
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('Status de respuesta:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Sin mensaje de error');
+      console.error('Error del servidor:', errorText);
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText || errorText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    
+    console.log('Descarga completa. Tamaño:', arrayBuffer.byteLength, 'bytes');
+
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    
+    const base64Data = btoa(binary);
+
+    console.log('Conversión a base64 completa');
+
+    const file = new File(documentDirectory, filename);
+    await file.create();
+    
+    console.log('Archivo creado en:', file.uri);
+    
+    await file.write(base64Data, { encoding: 'base64' });
+
+    console.log('Contenido escrito exitosamente');
+
+    const exists = await file.exists();
+    
+    if (!exists) {
+      throw new Error('El archivo no se guardó correctamente');
+    }
+
+    const fileInfo = await file.stat();
+    console.log('Tamaño del archivo guardado:', fileInfo.size, 'bytes');
+
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Guardar reporte',
+        UTI: 'com.adobe.pdf',
+      });
+      console.log('Archivo compartido exitosamente');
+    } else {
+      throw new Error('Compartir no está disponible en este dispositivo');
+    }
+  } catch (error) {
+    console.error('Error crítico en downloadBlob:', error);
+    console.error('URL intentada:', `${BASE_URL}${endpoint}`);
+    console.error('Detalles del error:', error.message);
+    throw error;
+  }
+};
 
 /**
  * Descarga el Reporte de Calidad del Aire (Resumen Estadístico).
@@ -80,10 +124,14 @@ export const downloadAirQualityReport = (
 ) => {
   let url = '';
   
+  const stationParam = stationId && stationId !== '' && stationId !== 'all' 
+    ? `station_id=${stationId}&` 
+    : '';
+  
   if (endDate) {
-    url = `/measurements/reports/air-quality/?station_id=${stationId}&start_date=${startDate}&end_date=${endDate}`;
+    url = `/measurements/reports/air-quality/?${stationParam}start_date=${startDate}&end_date=${endDate}`;
   } else {
-    url = `/measurements/reports/air-quality/?station_id=${stationId}&date=${startDate}`;
+    url = `/measurements/reports/air-quality/?${stationParam}date=${startDate}`;
   }
 
   if (variableCode) url += `&variable_code=${variableCode}`;
@@ -108,7 +156,11 @@ export const downloadTrendsReport = (
   endDate,
   variableCode = ''
 ) => {
-  let url = `/measurements/reports/trends/?station_id=${stationId}&start_date=${startDate}&end_date=${endDate}`;
+  const stationParam = stationId && stationId !== '' && stationId !== 'all' 
+    ? `station_id=${stationId}&` 
+    : '';
+    
+  let url = `/measurements/reports/trends/?${stationParam}start_date=${startDate}&end_date=${endDate}`;
   if (variableCode) url += `&variable_code=${variableCode}`;
   
   const filename = `tendencias_${startDate}_${endDate}.pdf`;
@@ -129,7 +181,10 @@ export const downloadAlertsReport = (
   startDate,
   endDate
 ) => {
-  let url = `/measurements/reports/alerts/?station_id=${stationId}&start_date=${startDate}&end_date=${endDate}`;
+  let url = `/measurements/reports/alerts/?start_date=${startDate}&end_date=${endDate}`;
+  if (stationId && stationId !== '' && stationId !== 'all') {
+    url += `&station_id=${stationId}`;
+  }
   
   const filename = `alertas_${startDate}_${endDate}.pdf`;
   return downloadBlob(url, filename);
