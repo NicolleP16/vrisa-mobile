@@ -187,7 +187,7 @@ export default function HomeScreen() {
         </View>
 
         <View className="gap-6">
-          {isInstitution ? (
+          {isInstitutionWorker ? (
             <>
               <FeatureCard
                 icon="grid-outline"
