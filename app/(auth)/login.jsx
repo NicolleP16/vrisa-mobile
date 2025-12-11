@@ -39,8 +39,20 @@ export default function LoginScreen() {
       await signIn(formData.email, formData.password);
       router.replace("/(tabs)/");
     } catch (error) {
-      const errors = formatApiErrors(error, 'Error al iniciar sesión. Verifica tus credenciales.');
-      Alert.alert('Error', errors.join('\n'));
+      console.error('Error de login:', error);
+
+      // Detectar error de credenciales incorrectas
+      if (error.status === 401 || error.message?.toLowerCase().includes('unauthorized') ||
+          error.message?.toLowerCase().includes('credentials') ||
+          error.message?.toLowerCase().includes('invalid')) {
+        Alert.alert(
+          'Credenciales incorrectas',
+          'El correo electrónico o la contraseña que ingresaste no son correctos. Por favor, verifica e intenta nuevamente.'
+        );
+      } else {
+        const errors = formatApiErrors(error, 'Error al iniciar sesión. Por favor, intenta nuevamente.');
+        Alert.alert('Error', errors.join('\n'));
+      }
     } finally {
       setLoading(false);
     }
