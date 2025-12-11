@@ -17,6 +17,10 @@ export default function TabsLayout() {
     );
   }
 
+  // Determinar si el usuario es representante de institución
+  const isInstitutionWorker = user?.primary_role === 'institution_worker' ||
+                              user?.primary_role === 'institution';
+
   return (
     <Tabs
       screenOptions={{
@@ -42,26 +46,61 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="dashboard"
-        options={{
-          title: 'Dashboard',
-          tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stations"
-        options={{
-          title: 'Estaciones',
-          tabBarLabel: 'Estaciones',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="radio" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* Dashboard de Institución - solo para representantes */}
+      {isInstitutionWorker && (
+        <Tabs.Screen
+          name="institution-dashboard"
+          options={{
+            title: 'Panel Institución',
+            tabBarLabel: 'Panel',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="business" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
+
+      {/* Dashboard general*/}
+      {!isInstitutionWorker && (
+        <Tabs.Screen
+          name="dashboard"
+          options={{
+            title: 'Dashboard',
+            tabBarLabel: 'Dashboard',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="grid" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
+
+      {/* Mis Estaciones - solo para representantes de institución */}
+      {isInstitutionWorker && (
+        <Tabs.Screen
+          name="institution-stations"
+          options={{
+            title: 'Mis Estaciones',
+            tabBarLabel: 'Estaciones',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="radio" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
+
+      {/* Estaciones */}
+      {!isInstitutionWorker && (
+        <Tabs.Screen
+          name="stations"
+          options={{
+            title: 'Estaciones',
+            tabBarLabel: 'Estaciones',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="radio" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
       <Tabs.Screen
         name="reports"
         options={{
