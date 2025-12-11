@@ -80,10 +80,18 @@ export default function HomeScreen() {
   const currentRole = user?.primary_role || 'citizen';
   const roleStatus = user?.role_status || 'APPROVED';
   const isCitizen = currentRole === 'citizen';
+  const isInstitutionWorker = currentRole === 'institution_worker' || currentRole === 'institution';
 
   // Determinar si tiene una solicitud pendiente
   const isPending = roleStatus === 'PENDING' && !isCitizen;
   const pendingRoleData = roleConfig[currentRole];
+
+  // Redirigir automáticamente a representantes de institución a su dashboard
+  useEffect(() => {
+    if (!loading && !authLoading && isInstitutionWorker && !isPending) {
+      router.replace('/(tabs)/institution-dashboard');
+    }
+  }, [loading, authLoading, isInstitutionWorker, isPending]);
 
   if (loading || authLoading) {
     return (
@@ -137,77 +145,107 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="px-6 py-8">
-          {/* CASO 1: Usuario con Rol Pendiente */}
-          {isPending && pendingRoleData ? (
-            <View className="items-center">
-              <View className="mb-8">
-                <Text className="text-3xl font-bold text-slate-900 text-center">
-                  ¡Bienvenido a VriSA, {user?.first_name}!
-                </Text>
-                <Text className="text-slate-600 text-center mt-3 text-base">
-                  Has solicitado el rol de <Text className="font-bold">{pendingRoleData.title}</Text>.{"\n"}
-                  Necesitamos información adicional para validar tu cuenta.
-                </Text>
-              </View>
+<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+  <View className="px-6 py-8">
 
-              <View className="w-full max-w-sm">
-                <RoleCard 
-                  title={pendingRoleData.title}
-                  desc={pendingRoleData.desc}
-                  icon={pendingRoleData.icon}
-                  onPress={() => router.push(pendingRoleData.route)}
-                  buttonText="Continuar Registro"
-                  highlight={true}
-                />
-              </View>
-            </View>
+    {/* CASO 1: Usuario con Rol Pendiente */}
+    {isPending && pendingRoleData ? (
+      <View className="items-center">
+        <View className="mb-8">
+          <Text className="text-3xl font-bold text-slate-900 text-center">
+            ¡Bienvenido a VriSA, {user?.first_name}!
+          </Text>
+          <Text className="text-slate-600 text-center mt-3 text-base">
+            Has solicitado el rol de <Text className="font-bold">{pendingRoleData.title}</Text>.{"\n"}
+            Necesitamos información adicional para validar tu cuenta.
+          </Text>
+        </View>
+
+        <View className="w-full max-w-sm">
+          <RoleCard 
+            title={pendingRoleData.title}
+            desc={pendingRoleData.desc}
+            icon={pendingRoleData.icon}
+            onPress={() => router.push(pendingRoleData.route)}
+            buttonText="Continuar Registro"
+            highlight={true}
+          />
+        </View>
+      </View>
+    ) : (
+      /* CASO 2: Usuario Aprobado o Ciudadano */
+      <View>
+        <View className="mb-8">
+          <Text className="text-3xl font-bold text-slate-900 text-center">
+            ¡Bienvenido a VriSA, {user?.first_name}!
+          </Text>
+          <Text className="text-slate-600 text-center mt-3 text-base">
+            {isCitizen 
+              ? "Como ciudadano, puedes consultar la calidad del aire y acceder a reportes públicos."
+              : `Tu perfil de ${currentRole} está activo. Explora las opciones disponibles.`}
+          </Text>
+        </View>
+
+        <View className="gap-6">
+          {isInstitution ? (
+            <>
+              <FeatureCard
+                icon="grid-outline"
+                title="Dashboard"
+                description="Visualiza el estado de la calidad del aire en tiempo real."
+                onPress={() => router.push('/dashboard')}
+                gradientColors={["#6366f1", "#4f46e5"]} 
+              />
+
+              <FeatureCard
+                icon="radio-outline"
+                title="Mis Estaciones"
+                description="Administra las estaciones afiliadas a tu institución."
+                onPress={() => router.push('/(tabs)/institution-stations')}
+                gradientColors={["#3b82f6", "#2563eb"]} 
+              />
+
+              <FeatureCard
+                icon="document-text-outline"
+                title="Reportes"
+                description="Consulta informes históricos y estadísticas ambientales."
+                onPress={() => router.push('/(tabs)/reports')}
+                gradientColors={["#8b5cf6", "#7c3aed"]} 
+              />
+            </>
           ) : (
-            /* CASO 2: Usuario Aprobado o Ciudadano */
-            <View>
-              <View className="mb-8">
-                <Text className="text-3xl font-bold text-slate-900 text-center">
-                  ¡Bienvenido a VriSA, {user?.first_name}!
-                </Text>
-                <Text className="text-slate-600 text-center mt-3 text-base">
-                  {isCitizen 
-                    ? "Como ciudadano, puedes consultar la calidad del aire y acceder a reportes públicos."
-                    : `Tu perfil de ${currentRole} está activo. Explora las opciones disponibles.`
-                  }
-                </Text>
-              </View>
+            <>
+              <FeatureCard
+                icon="grid-outline"
+                title="Dashboard"
+                description="Visualiza el estado de la calidad del aire en tiempo real."
+                onPress={() => router.push('/(tabs)/dashboard')}
+                gradientColors={["#6366f1", "#4f46e5"]} 
+              />
 
-              <View className="gap-6">
-                <FeatureCard
-                  icon="grid-outline"
-                  title="Dashboard"
-                  description="Visualiza el estado de la calidad del aire en tiempo real."
-                  onPress={() => router.push('/dashboard')}
-                  gradientColors={["#6366f1", "#4f46e5"]}
-                />
+              <FeatureCard
+                icon="document-text-outline"
+                title="Reportes"
+                description="Consulta informes históricos y estadísticas ambientales."
+                onPress={() => router.push('/(tabs)/reports')}
+                gradientColors={["#8b5cf6", "#7c3aed"]} 
+              />
 
-                <FeatureCard
-                  icon="document-text-outline"
-                  title="Reportes"
-                  description="Consulta informes históricos y estadísticas ambientales."
-                  onPress={() => router.push('/reports')}
-                  gradientColors={["#8b5cf6", "#7c3aed"]}
-                />
-
-                <FeatureCard
-                  icon="radio-outline"
-                  title="Estaciones"
-                  description="Explora las estaciones de monitoreo disponibles."
-                  onPress={() => router.push('/stations')}
-                  gradientColors={["#3b82f6", "#2563eb"]}
-                />
-              </View>
-            </View>
+              <FeatureCard
+                icon="radio-outline"
+                title="Estaciones"
+                description="Explora las estaciones de monitoreo disponibles."
+                onPress={() => router.push('/(tabs)/stations')}
+                gradientColors={["#3b82f6", "#2563eb"]} 
+              />
+            </>
           )}
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    )}
+  </View>
+</ScrollView>
+</View>
   );
 }
 
